@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
+.turbo/
+*.tsbuildinfo
+.changeset/*.md
+!.changeset/README.md
+!.changeset/config.json
