@@ -101,6 +101,23 @@ describe('createLedgerStream', () => {
     expect(received[0]).toMatchObject({ source: 'ledger', updateId: 'u1' })
   })
 
+  it('reports UNKNOWN via onError when server sends unparseable JSON', () => {
+    const onError = vi.fn()
+    const stream = createLedgerStream(
+      { ledgerUrl: 'https://ledger.example', auth: { token: 'TKN' } },
+      deps()
+    )
+    stream({ onEvent: () => undefined, onError })
+    const ws = FakeWebSocket.instances[0]!
+    ws.__open()
+    // Drive onmessage with raw invalid JSON — bypassing FakeWebSocket's __message
+    // helper (which always JSON.stringifies). We construct the event directly.
+    ws.onmessage?.({ data: '{not valid json' } as never)
+    expect(onError).toHaveBeenCalled()
+    const err = onError.mock.calls[0]?.[0]
+    expect((err as { code?: string }).code).toBe('UNKNOWN')
+  })
+
   it('reconnects with exponential backoff on abnormal close', () => {
     const stream = createLedgerStream(
       { ledgerUrl: 'https://ledger.example', auth: { token: 'TKN' } },
@@ -147,5 +164,9 @@ describe('createLedgerStream', () => {
     expect(onError).toHaveBeenCalled()
     const err = onError.mock.calls[0]?.[0]
     expect((err as { code?: string }).code).toBe('STREAM_CLOSED')
+    // Ensure no further reconnect attempts happen after exhaustion
+    const instancesAfterExhaustion = FakeWebSocket.instances.length
+    vi.advanceTimersByTime(30_000)
+    expect(FakeWebSocket.instances).toHaveLength(instancesAfterExhaustion)
   })
 })

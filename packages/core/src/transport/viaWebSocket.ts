@@ -108,9 +108,6 @@ export function createLedgerStream(
           opts.onError?.(CantonError.wrap(err, 'UNKNOWN'))
         }
       }
-      ws.onerror = (err) => {
-        opts.onError?.(CantonError.wrap(err, 'STREAM_CLOSED'))
-      }
       ws.onclose = (ev: CloseEvent) => {
         currentSocket = null
         if (stopped || ev.code === 1000) return
