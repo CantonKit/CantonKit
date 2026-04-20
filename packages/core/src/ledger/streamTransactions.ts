@@ -24,7 +24,7 @@ function matchesFilter(raw: unknown, templateIds: string[] | undefined): boolean
   return templateIds.includes(tplId)
 }
 
-interface StreamDeps {
+export interface StreamDeps {
   ledgerSource?: (opts: SubscribeOptions) => Unsubscribe
 }
 
