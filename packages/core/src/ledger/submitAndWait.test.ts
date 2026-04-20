@@ -36,7 +36,9 @@ describe('submitAndWait', () => {
     await submitAndWait(fake as never, { commands: [], actAs: ['A'] })
 
     const sent = fake.__calls.prepareExecuteAndWait[0] as { commandId?: string }
-    expect(sent.commandId).toMatch(/^[0-9a-f-]{36}$/i)
+    expect(sent.commandId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    )
   })
 
   it('preserves caller-supplied commandId', async () => {
@@ -59,6 +61,6 @@ describe('submitAndWait', () => {
 
     await expect(
       submitAndWait(fake as never, { commands: [], actAs: ['A'] })
-    ).rejects.toMatchObject({ code: 'WALLET_REJECTED' })
+    ).rejects.toMatchObject({ code: 'WALLET_REJECTED', cause: err })
   })
 })

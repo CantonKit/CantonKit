@@ -22,6 +22,17 @@ describe('submit', () => {
 
     expect(result).toBeNull()
     expect(fake.__calls.prepareExecute).toHaveLength(1)
+    expect(fake.__calls.prepareExecute[0]).toMatchObject({
+      commands: [
+        {
+          CreateCommand: {
+            templateId: '#App:Mod:T',
+            createArguments: { owner: 'Alice' },
+          },
+        },
+      ],
+      actAs: ['Alice'],
+    })
   })
 
   it('maps user rejection to WALLET_REJECTED', async () => {
@@ -31,7 +42,7 @@ describe('submit', () => {
 
     await expect(
       submit(fake as never, { commands: [], actAs: ['Alice'] })
-    ).rejects.toMatchObject({ code: 'WALLET_REJECTED' })
+    ).rejects.toMatchObject({ code: 'WALLET_REJECTED', cause: rejection })
   })
 
   it('wraps generic failures as UNKNOWN', async () => {
