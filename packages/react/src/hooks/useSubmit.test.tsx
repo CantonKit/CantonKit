@@ -11,13 +11,12 @@ const TPL = templateId('#App:Mod:T')
 
 describe('useSubmit', () => {
   it('mutates successfully and returns SubmitResult', async () => {
-    const client = createFakeCantonClient({
-      submitAndWait: vi.fn(async () => ({
-        updateId: 'u1',
-        commandId: 'c1',
-        completionOffset: '42',
-      })) as never,
-    })
+    const submitAndWait = vi.fn(async () => ({
+      updateId: 'u1',
+      commandId: 'c1',
+      completionOffset: '42',
+    }))
+    const client = createFakeCantonClient({ submitAndWait: submitAndWait as never })
     const { result } = renderHook(() => useSubmit(), {
       wrapper: ({ children }: { children: ReactNode }) => (
         <TestCantonProvider client={client}>{children}</TestCantonProvider>
@@ -29,6 +28,7 @@ describe('useSubmit', () => {
     })
 
     await waitFor(() => expect(result.current.data?.updateId).toBe('u1'))
+    expect(submitAndWait).toHaveBeenCalledWith({ commands: [], actAs: ['Alice'] })
   })
 
   it('surfaces WALLET_REJECTED error', async () => {
@@ -92,6 +92,7 @@ describe('useSubmit', () => {
 
   it('respects invalidate: false to skip auto-invalidation', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
     let queryACSCount = 0
     const client = createFakeCantonClient({
       queryACS: (async () => {
@@ -121,8 +122,7 @@ describe('useSubmit', () => {
     await act(async () => {
       await result.current.submit.mutateAsync({ commands: [], actAs: ['Alice'] })
     })
-    // give React time in case invalidation were to fire
-    await new Promise((r) => setTimeout(r, 20))
+    expect(invalidateSpy).not.toHaveBeenCalled()
     expect(queryACSCount).toBe(1)
   })
 })

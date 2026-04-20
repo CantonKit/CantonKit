@@ -8,7 +8,10 @@ import type { CantonError, SubmitOptions, SubmitResult } from '@cantonkit/core'
 import { useCantonClient } from '../context.js'
 
 export interface UseSubmitOptions
-  extends UseMutationOptions<SubmitResult, CantonError, SubmitOptions> {
+  extends Omit<
+    UseMutationOptions<SubmitResult, CantonError, SubmitOptions>,
+    'mutationFn'
+  > {
   /** When false, skips the default invalidation of ['canton', 'acs']. Default true. */
   invalidate?: boolean
 }
