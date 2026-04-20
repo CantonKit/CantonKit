@@ -27,9 +27,11 @@ describe('CantonError', () => {
     expect(wrapped).toBeInstanceOf(CantonError)
     expect(wrapped.code).toBe('UNKNOWN')
     expect(wrapped.cause).toBeInstanceOf(Error)
+    expect(wrapped.name).toBe('CantonError')
 
     const fromString = CantonError.wrap('oops', 'LEDGER_HTTP')
     expect(fromString.code).toBe('LEDGER_HTTP')
     expect(fromString.message).toBe('oops')
+    expect(fromString.cause).toBe('oops')
   })
 })
