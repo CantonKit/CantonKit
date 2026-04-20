@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
-import type { CantonError, SubscribeOptions, TransactionEvent } from '@cantonkit/core'
+import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
+import { CantonError } from '@cantonkit/core'
+import type { SubscribeOptions, TransactionEvent } from '@cantonkit/core'
 import { useCantonClient } from '../context.js'
 
 export interface UseTransactionStreamOptions {
   source?: SubscribeOptions['source']
   filter?: SubscribeOptions['filter']
+  /**
+   * Called synchronously inside the store's event push, before React
+   * schedules a re-render. Suitable for fire-and-forget side effects
+   * (toasts, analytics) that must not wait for a render pass.
+   */
   onEvent?: (event: TransactionEvent) => void
   bufferSize?: number
 }
@@ -37,19 +43,27 @@ function createStreamStore(
 
   function ensureStarted() {
     if (unsub) return
-    unsub = subscribeFn(
-      (event) => {
-        const next = [event, ...snapshot.events].slice(0, bufferSize)
-        snapshot = { ...snapshot, events: next, isConnected: true }
-        emit()
-      },
-      (err) => {
-        snapshot = { ...snapshot, isConnected: false, error: err }
-        emit()
-      }
-    )
-    snapshot = { ...snapshot, isConnected: true }
-    emit()
+    try {
+      unsub = subscribeFn(
+        (event) => {
+          const next = [event, ...snapshot.events].slice(0, bufferSize)
+          snapshot = { ...snapshot, events: next, isConnected: true }
+          emit()
+        },
+        (err) => {
+          snapshot = { ...snapshot, isConnected: false, error: err }
+          emit()
+        }
+      )
+    } catch (err) {
+      snapshot = { ...snapshot, isConnected: false, error: err as CantonError }
+      emit()
+      return
+    }
+    if (!snapshot.error) {
+      snapshot = { ...snapshot, isConnected: true }
+      emit()
+    }
   }
 
   return {
@@ -98,7 +112,7 @@ export function useTransactionStream(opts: UseTransactionStreamOptions): {
           onEventRef.current?.(event)
           push(event)
         },
-        onError: (err) => fail(err as CantonError),
+        onError: (err) => fail(CantonError.wrap(err, 'STREAM_CLOSED')),
       })
     }, bufferSize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,8 +120,6 @@ export function useTransactionStream(opts: UseTransactionStreamOptions): {
 
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, () => EMPTY_SNAPSHOT)
   const clear = useCallback(() => store.clear(), [store])
-
-  useEffect(() => () => undefined, [store])
 
   return { ...snapshot, clear }
 }

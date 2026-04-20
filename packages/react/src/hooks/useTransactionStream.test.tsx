@@ -87,4 +87,24 @@ describe('useTransactionStream', () => {
     act(() => result.current.clear())
     expect(result.current.events).toHaveLength(0)
   })
+
+  it('surfaces onError and clears isConnected when transport reports an error', () => {
+    const client = createFakeCantonClient({
+      subscribeToTransactions: ((opts: {
+        onError?: (e: unknown) => void
+      }) => {
+        // Fire an error synchronously on subscribe.
+        opts.onError?.(new Error('boom'))
+        return () => undefined
+      }) as never,
+    })
+    const { result } = renderHook(() => useTransactionStream({}), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <TestCantonProvider client={client}>{children}</TestCantonProvider>
+      ),
+    })
+    expect(result.current.error).not.toBeNull()
+    expect((result.current.error as { code?: string })?.code).toBe('STREAM_CLOSED')
+    expect(result.current.isConnected).toBe(false)
+  })
 })
