@@ -73,4 +73,24 @@ describe('useContracts', () => {
     })
     expect(result.current.fetchStatus).toBe('idle')
   })
+
+  it('stays idle when queryOptions.enabled is false even with an active party', () => {
+    const queryACS = vi.fn(async () => [])
+    const client = createFakeCantonClient({ queryACS: queryACS as never })
+    const { result } = renderHook(
+      () => useContracts({ templateId: TPL }, { enabled: false }),
+      { wrapper: wrap(client) }
+    )
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(queryACS).not.toHaveBeenCalled()
+  })
+
+  it('forwards filter to client.queryACS', async () => {
+    const queryACS = vi.fn(async () => [])
+    const client = createFakeCantonClient({ queryACS: queryACS as never })
+    const filter = { key: { owner: 'Alice' } }
+    renderHook(() => useContracts({ templateId: TPL, filter }), { wrapper: wrap(client) })
+    await waitFor(() => expect(queryACS).toHaveBeenCalledTimes(1))
+    expect(queryACS).toHaveBeenCalledWith(expect.objectContaining({ filter }))
+  })
 })

@@ -3,14 +3,11 @@ import type {
   ActiveContract,
   CantonError,
   QueryACSOptions,
-  TemplateId,
 } from '@cantonkit/core'
 import { useCantonClient, useCantonConnection } from '../context.js'
 
-export interface UseContractsOptions {
-  templateId: TemplateId
+export interface UseContractsOptions extends Omit<QueryACSOptions, 'parties'> {
   parties?: string[]
-  filter?: QueryACSOptions['filter']
 }
 
 type TanstackOpts<T> = Omit<
