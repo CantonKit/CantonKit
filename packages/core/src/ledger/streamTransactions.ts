@@ -49,7 +49,7 @@ export function streamTransactions(
     if (!matchesFilter(raw, templateIds)) return
     const event: TransactionEvent = toWalletEvent(raw)
     opts.onEvent?.(event)
-  })
+  }) as unknown as Unsubscribe
 
   return unsubscribe
 }

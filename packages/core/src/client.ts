@@ -4,7 +4,6 @@ import type { SubmitOptions, SubmitResult } from './types/commands.js'
 import type {
   SubscribeOptions,
   Transaction,
-  TransactionEvent,
   Unsubscribe,
 } from './types/transactions.js'
 import { viaLedgerApi, type LedgerTransport } from './transport/viaLedgerApi.js'
@@ -39,13 +38,13 @@ export function createCantonClient(opts: CreateCantonClientOptions): CantonClien
   const transport: LedgerTransport = viaLedgerApi(dapp)
   const ledgerSource =
     opts.ledgerUrl && opts.auth
-      ? createLedgerStream(
-          {
-            ledgerUrl: opts.ledgerUrl,
-            auth: opts.auth,
-            maxReconnectAttempts: opts.maxReconnectAttempts,
-          } satisfies LedgerStreamConfig
-        )
+      ? createLedgerStream({
+          ledgerUrl: opts.ledgerUrl,
+          auth: opts.auth,
+          ...(opts.maxReconnectAttempts !== undefined
+            ? { maxReconnectAttempts: opts.maxReconnectAttempts }
+            : {}),
+        } satisfies LedgerStreamConfig)
       : undefined
 
   const activeUnsubscribes = new Set<Unsubscribe>()
@@ -56,12 +55,9 @@ export function createCantonClient(opts: CreateCantonClientOptions): CantonClien
     submit: (p) => submit(dapp, p),
     submitAndWait: (p) => submitAndWait(dapp, p),
     subscribeToTransactions(sub: SubscribeOptions): Unsubscribe {
-      const wrappedOnEvent = sub.onEvent
-        ? (e: TransactionEvent) => sub.onEvent!(e)
-        : undefined
       const unsub = streamTransactions(
         dapp,
-        { ...sub, onEvent: wrappedOnEvent },
+        sub,
         ledgerSource ? { ledgerSource } : {}
       )
       activeUnsubscribes.add(unsub)

@@ -64,4 +64,31 @@ describe('createCantonClient', () => {
     }
     expect(raw.body).toEqual({ foo: 'bar' })
   })
+
+  it('wires getTransactionById through the ledger transport', async () => {
+    const fake = createFakeDappClient()
+    fake.__queue.ledgerApi.push({
+      ok: true,
+      status: 200,
+      body: {
+        transaction: { updateId: 'u9', offset: '0', effectiveAt: '', events: [] },
+      },
+    })
+    const client = createCantonClient({ dappClient: fake as never })
+    const tx = await client.getTransactionById('u9')
+    expect(tx.updateId).toBe('u9')
+    expect(fake.__calls.ledgerApi[0]).toMatchObject({
+      method: 'GET',
+      url: '/v2/updates/transaction-by-id/u9',
+    })
+  })
+
+  it('wires submit through prepareExecute', async () => {
+    const fake = createFakeDappClient()
+    fake.__queue.prepareExecute.push({ kind: 'ok', value: null })
+    const client = createCantonClient({ dappClient: fake as never })
+    const result = await client.submit({ commands: [], actAs: ['Alice'] })
+    expect(result).toBeNull()
+    expect(fake.__calls.prepareExecute).toHaveLength(1)
+  })
 })

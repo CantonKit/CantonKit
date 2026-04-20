@@ -34,7 +34,7 @@ export async function submitAndWait(
       readAs: opts.readAs,
       commandId,
       deduplicationDuration: opts.deduplicationDuration,
-    } as never)) as SubmitResult
+    } as never)) as unknown as SubmitResult
     return result
   } catch (err) {
     if (isRejection(err)) {
