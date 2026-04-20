@@ -1,0 +1,33 @@
+{
+  "name": "@cantonkit/core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic TypeScript client for the Canton Network, wrapping @canton-network/dapp-sdk.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@canton-network/dapp-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@canton-network/dapp-sdk": "^1.0.0",
+    "@types/node": "^20.11.0"
+  },
+  "publishConfig": { "access": "public" }
+}
