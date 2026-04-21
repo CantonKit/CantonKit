@@ -17,13 +17,16 @@ export interface FakeDappClient {
     commandId: string
     completionOffset: string
   }>
-  listAccounts(): Promise<{ accounts: Array<{ partyId: string }> }>
-  connect(opts?: unknown): Promise<{ isConnected: boolean }>
+  listAccounts(): Promise<Array<{ partyId: string }>>
+  connect(): Promise<{ isConnected: boolean }>
   disconnect(): Promise<void>
   status(): Promise<{ connection: { isConnected: boolean } }>
-  onTxChanged(listener: (e: unknown) => void): () => void
-  onStatusChanged(listener: (e: unknown) => void): () => void
-  onAccountsChanged(listener: (e: unknown) => void): () => void
+  onTxChanged(listener: (e: unknown) => void): void
+  onStatusChanged(listener: (e: unknown) => void): void
+  onAccountsChanged(listener: (e: unknown) => void): void
+  removeOnTxChanged(listener: (e: unknown) => void): void
+  removeOnStatusChanged(listener: (e: unknown) => void): void
+  removeOnAccountsChanged(listener: (e: unknown) => void): void
 
   __queue: {
     ledgerApi: unknown[]
@@ -33,7 +36,7 @@ export interface FakeDappClient {
       commandId: string
       completionOffset: string
     }>[]
-    listAccounts: Array<{ accounts: Array<{ partyId: string }> }>
+    listAccounts: Array<Array<{ partyId: string }>>
     connect: QueuedResult<{ isConnected: boolean }>[]
   }
   __calls: {
@@ -41,7 +44,7 @@ export interface FakeDappClient {
     prepareExecute: unknown[]
     prepareExecuteAndWait: unknown[]
     listAccounts: number
-    connect: unknown[]
+    connect: number
     disconnect: number
   }
   __emitTx(event: unknown): void
@@ -66,7 +69,7 @@ export function createFakeDappClient(): FakeDappClient {
     prepareExecute: [],
     prepareExecuteAndWait: [],
     listAccounts: 0,
-    connect: [],
+    connect: 0,
     disconnect: 0,
   }
 
@@ -95,10 +98,10 @@ export function createFakeDappClient(): FakeDappClient {
     async listAccounts() {
       calls.listAccounts++
       const next = queue.listAccounts.shift()
-      return next ?? { accounts: [] }
+      return next ?? []
     },
-    async connect(opts) {
-      calls.connect.push(opts)
+    async connect() {
+      calls.connect++
       return takeQueuedResult(queue.connect, 'connect')
     },
     async disconnect() {
@@ -109,15 +112,21 @@ export function createFakeDappClient(): FakeDappClient {
     },
     onTxChanged(listener) {
       txListeners.add(listener)
-      return () => txListeners.delete(listener)
     },
     onStatusChanged(listener) {
       statusListeners.add(listener)
-      return () => statusListeners.delete(listener)
     },
     onAccountsChanged(listener) {
       accountsListeners.add(listener)
-      return () => accountsListeners.delete(listener)
+    },
+    removeOnTxChanged(listener) {
+      txListeners.delete(listener)
+    },
+    removeOnStatusChanged(listener) {
+      statusListeners.delete(listener)
+    },
+    removeOnAccountsChanged(listener) {
+      accountsListeners.delete(listener)
     },
     __queue: queue,
     __calls: calls,

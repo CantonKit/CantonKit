@@ -23,12 +23,12 @@ describe('createFakeDappClient', () => {
   it('drives onTxChanged listeners via emitTx', () => {
     const fake = createFakeDappClient()
     const listener = vi.fn()
-    const unsub = fake.onTxChanged(listener)
+    fake.onTxChanged(listener)
 
     fake.__emitTx({ updateId: 'u1' })
     expect(listener).toHaveBeenCalledWith({ updateId: 'u1' })
 
-    unsub()
+    fake.removeOnTxChanged(listener)
     fake.__emitTx({ updateId: 'u2' })
     expect(listener).toHaveBeenCalledTimes(1)
   })

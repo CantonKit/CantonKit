@@ -29,7 +29,7 @@ export interface StreamDeps {
 }
 
 export function streamTransactions(
-  dapp: Pick<DappClient, 'onTxChanged'>,
+  dapp: Pick<DappClient, 'onTxChanged' | 'removeOnTxChanged'>,
   opts: SubscribeOptions,
   deps: StreamDeps = {}
 ): Unsubscribe {
@@ -45,11 +45,11 @@ export function streamTransactions(
   }
 
   const templateIds = opts.filter?.templateIds
-  const unsubscribe = dapp.onTxChanged((raw: unknown) => {
+  const listener = (raw: unknown) => {
     if (!matchesFilter(raw, templateIds)) return
     const event: TransactionEvent = toWalletEvent(raw)
     opts.onEvent?.(event)
-  }) as unknown as Unsubscribe
-
-  return unsubscribe
+  }
+  dapp.onTxChanged(listener)
+  return () => dapp.removeOnTxChanged?.(listener)
 }

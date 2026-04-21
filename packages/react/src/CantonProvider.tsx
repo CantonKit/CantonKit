@@ -136,19 +136,11 @@ export function CantonProvider({ config, children }: CantonProviderProps): JSX.E
       const list = (evt as { accounts?: Wallet[] }).accounts ?? []
       setAccounts(list)
     }
-    // DappClient.onStatusChanged/onAccountsChanged return void; the fake returns
-    // an unsubscriber. Capture either so tests can drive cleanup via the fake.
-    const maybeUnsubStatus = (
-      dappClient.onStatusChanged as unknown as (l: (e: unknown) => void) => (() => void) | void
-    )(statusListener)
-    const maybeUnsubAccounts = (
-      dappClient.onAccountsChanged as unknown as (l: (e: unknown) => void) => (() => void) | void
-    )(accountsListener)
+    dappClient.onStatusChanged(statusListener as never)
+    dappClient.onAccountsChanged(accountsListener as never)
     return () => {
-      if (typeof maybeUnsubStatus === 'function') maybeUnsubStatus()
-      else dappClient.removeOnStatusChanged?.(statusListener as never)
-      if (typeof maybeUnsubAccounts === 'function') maybeUnsubAccounts()
-      else dappClient.removeOnAccountsChanged?.(accountsListener as never)
+      dappClient.removeOnStatusChanged(statusListener as never)
+      dappClient.removeOnAccountsChanged(accountsListener as never)
     }
   }, [dappClient])
 
@@ -157,13 +149,9 @@ export function CantonProvider({ config, children }: CantonProviderProps): JSX.E
       if (!dappClient) throw new Error('DappClient not ready')
       setStatus('connecting')
       try {
-        await (dappClient.connect as unknown as (opts?: unknown) => Promise<unknown>)(_opts)
-        const res = (await dappClient.listAccounts()) as unknown
-        // Real DappClient returns Wallet[]; the fake wraps it as { accounts }.
-        const list: Wallet[] = Array.isArray(res)
-          ? (res as Wallet[])
-          : ((res as { accounts?: Wallet[] }).accounts ?? [])
-        setAccounts(list)
+        await dappClient.connect()
+        const list = await dappClient.listAccounts()
+        setAccounts(list as Wallet[])
         setStatus('connected')
       } catch (err) {
         setStatus('error')

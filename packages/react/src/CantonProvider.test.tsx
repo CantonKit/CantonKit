@@ -35,7 +35,7 @@ describe('CantonProvider', () => {
   it('transitions disconnected → connecting → connected during connect()', async () => {
     const fake = createFakeDappClient()
     fake.__queue.connect.push({ kind: 'ok', value: { isConnected: true } })
-    fake.__queue.listAccounts.push({ accounts: [{ partyId: 'Alice::hash' }] })
+    fake.__queue.listAccounts.push([{ partyId: 'Alice::hash' }])
 
     const { result } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
