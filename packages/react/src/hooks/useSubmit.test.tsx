@@ -125,4 +125,34 @@ describe('useSubmit', () => {
     expect(invalidateSpy).not.toHaveBeenCalled()
     expect(queryACSCount).toBe(1)
   })
+
+  it('calls user-supplied onSuccess after successful submit with invalidate: false', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const client = createFakeCantonClient({
+      submitAndWait: (async () => ({
+        updateId: 'u1',
+        commandId: 'c1',
+        completionOffset: '0',
+      })) as never,
+    })
+    const userOnSuccess = vi.fn()
+
+    const { result } = renderHook(
+      () => useSubmit({ invalidate: false, onSuccess: userOnSuccess }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestCantonProvider client={client} queryClient={qc}>
+            {children}
+          </TestCantonProvider>
+        ),
+      }
+    )
+
+    await act(async () => {
+      await result.current.mutateAsync({ commands: [], actAs: ['Alice'] })
+    })
+
+    expect(userOnSuccess).toHaveBeenCalledOnce()
+    expect(userOnSuccess.mock.calls[0]?.[0]).toMatchObject({ updateId: 'u1' })
+  })
 })

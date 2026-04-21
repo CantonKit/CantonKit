@@ -107,4 +107,19 @@ describe('useTransactionStream', () => {
     expect((result.current.error as { code?: string })?.code).toBe('STREAM_CLOSED')
     expect(result.current.isConnected).toBe(false)
   })
+
+  it('surfaces synchronous subscribe errors in the error state', () => {
+    const client = createFakeCantonClient({
+      subscribeToTransactions: (() => {
+        throw new Error('sync boom')
+      }) as never,
+    })
+    const { result } = renderHook(() => useTransactionStream({}), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <TestCantonProvider client={client}>{children}</TestCantonProvider>
+      ),
+    })
+    expect(result.current.error).not.toBeNull()
+    expect(result.current.isConnected).toBe(false)
+  })
 })
