@@ -7,6 +7,3 @@ coverage/
 .vscode/
 .turbo/
 *.tsbuildinfo
-.changeset/*.md
-!.changeset/README.md
-!.changeset/config.json
