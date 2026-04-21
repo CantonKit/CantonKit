@@ -124,6 +124,10 @@ export function CantonProvider({ config, children }: CantonProviderProps): JSX.E
       clientRef.current?.destroy()
       clientRef.current = null
     }
+    // Deps intentionally destructure `config` fields — a parent passing a
+    // fresh `config` object on every render would otherwise tear down and
+    // rebuild the DappClient on every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.gatewayUrl, config.ledgerUrl, config.auth?.token, config.dappClient])
 
   useEffect(() => {
