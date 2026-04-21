@@ -12,6 +12,7 @@
     "lint": "eslint 'packages/*/src/**/*.{ts,tsx}'",
     "format": "prettier --write 'packages/*/src/**/*.{ts,tsx,json,md}'",
     "changeset": "changeset",
+    "check:api-coverage": "node scripts/check-public-api-coverage.mjs",
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
