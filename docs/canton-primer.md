@@ -151,6 +151,91 @@ Canton 支持**外部 party**：它的私钥保存在链外（用户设备），
 
 ---
 
+## 深入：为什么 `subscribeToTransactions` 有 wallet/ledger 两个 source？
+
+这两个 source 代表**订阅交易事件的两条完全不同的数据通路**，各自的可信边界、延迟、权限模型都不一样。CantonKit 让调用方选，是因为没有一个选择能覆盖所有场景。
+
+### 两条通路的差别
+
+```
+source: 'wallet'                    source: 'ledger'
+────────────────                    ────────────────
+dApp → DappClient.onTxChanged()     dApp → WebSocket /v2/updates/flats
+         │                                     │
+         ▼                                     ▼
+    Wallet Gateway                        Validator 节点 (LAPI)
+         │                                     │
+         ▼                                     │
+    Wallet Kernel                              │
+         │                                     │
+         ▼                                     │
+    Validator 节点                             │
+         (事件由钱包推回 dApp)                  (事件直接推给 dApp)
+```
+
+| 维度 | `wallet` source | `ledger` source |
+|---|---|---|
+| **数据来源** | 用户连接的钱包转发 | dApp 直接开 WebSocket 到 JSON Ledger API |
+| **需要什么** | 只要 `gatewayUrl`（用户已连接钱包） | 需要 `ledgerUrl` + `auth` token |
+| **谁能看到的事件** | 只有**当前连接 party** 相关的 tx | 取决于 auth token 的 party 权限（可跨 party） |
+| **过滤** | 客户端过滤（事件已来了再筛 templateId） | 服务端过滤（filter 下发到节点，按 party + templateId 裁剪） |
+| **延迟 / 保真度** | 受钱包实现限制（可能批处理、节流、丢事件） | 直连节点，完整的 transaction tree |
+| **隐私边界** | 天然受钱包控制，dApp 拿不到 party 以外的数据 | dApp 必须自己管好 token 范围 |
+| **SSR / 无浏览器环境** | 需要浏览器（钱包在浏览器） | 可以在 Node / 服务端跑 |
+| **适用场景** | 浏览器 dApp 的常规订阅 | 服务端索引器、后台 worker、需要高保真事件的 dApp |
+
+### 每个 source 什么时候是"对的选择"
+
+**用 `source: 'wallet'`（CantonKit 的默认）**
+
+这是 90% 浏览器 dApp 场景的正确选择：
+
+- 你只关心**当前登录用户**的交易
+- 你不想额外管理一套 ledger 认证（避免把长期 token 塞进浏览器）
+- 你信任钱包提供方的事件推送质量
+- 你想让 dApp 在用户切钱包时自动跟随（钱包换了，事件源自动换）
+
+核心价值：**永远不会越过用户的隐私边界**。钱包不会给你 party 以外的数据，所以安全。
+
+**用 `source: 'ledger'`**
+
+几种典型场景：
+
+1. **服务端应用** — 后端索引器、webhook 触发器、交易监控。后端没有浏览器，连不了钱包；但有自己的 ledger 凭证，可以直连。
+2. **高保真需求** — 钱包可能节流或批处理 `onTxChanged`，导致 dApp 收不到完整的层级事件（create、archive、exercise 子树）。`/v2/updates/flats` 直接推完整的 `LedgerTxEvent`，包含每个事件的 `templateId`、`contractId`、`kind`。
+3. **多 party 订阅** — dApp 为多个 party 同时服务（比如做市商、交易所前台、托管方）。钱包只给你当前连接的 party；ledger source 用一个 token 覆盖多个 party。
+4. **离线时想补交易历史** — 钱包可能只推"当下"的事件；ledger WebSocket 可以带 `beginOffset` 从历史补读，确保不漏。
+5. **对钱包不信任** — dApp 是交易所、托管方这种需要独立账本视图的角色，不愿把观测完全交给第三方钱包实现。
+
+### CantonKit 里的实际表现
+
+```typescript
+// 浏览器 dApp，默认用户场景
+useTransactionStream({
+  filter: { templateIds: [COUNTER] },
+})
+// 等价于 source: 'wallet'，CantonKit 从 CantonProvider 的 dappClient.onTxChanged 拉事件
+
+// 服务端 / 高保真场景
+useTransactionStream({
+  source: 'ledger',
+  filter: { parties: ['Alice::...', 'Bob::...'], templateIds: [COUNTER] },
+})
+// CantonKit 用 createLedgerStream 开 WS 到 ledgerUrl，带指数退避
+// 需要 <CantonProvider config={{ gatewayUrl, ledgerUrl, auth: { token } }}>
+```
+
+另一个设计细节：`filter.parties` 在 wallet source 下是**无效字段**（钱包自己决定你能看谁），但在 ledger source 下**下发到服务端**生效。设计文档里我们专门说明了这点——避免开发者以为"传了 parties 就能跨 party 看事件"。
+
+### 如果只能选一个会怎样？
+
+- **只保留 wallet** — 服务端应用完全用不了 CantonKit；高保真场景被钱包行为限制；多 party 场景做不到。
+- **只保留 ledger** — 浏览器 dApp 必须自己管 ledger auth token，安全风险上升（token 在前端）；失去"跟随钱包连接状态"的 DX。
+
+两个都留，按场景切换，是最符合 Canton 隐私模型的折中——钱包是为"用户代理"设计的，ledger API 是为"节点代理"设计的，两种代理在 Canton 里是不同的信任身份。
+
+---
+
 ## 延伸阅读
 
 官方文档按角色分了几条路径，推荐顺序：
