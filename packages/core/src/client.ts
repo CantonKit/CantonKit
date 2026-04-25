@@ -79,6 +79,11 @@ export function createCantonClient(opts: CreateCantonClientOptions): CantonClien
 
 export interface JsonLedgerClientOptions {
   ledgerUrl: string
+  /**
+   * The party this client acts as. Not used by the transport directly —
+   * callers pass `actAs` explicitly on each command. Stored here so that
+   * wrapping providers (e.g. `LedgerProvider`) can surface it as `activeParty`.
+   */
   party: string
   getToken: () => string | undefined
   maxReconnectAttempts?: number
