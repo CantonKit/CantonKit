@@ -38,15 +38,17 @@ Config is a discriminated union on `mode`, because different wallet connection m
   gatewayUrl: 'https://gateway.example.com/api/json-rpc',
 }}>
 
-// Browser extension wallet (postMessage / window.canton injection)
+// Browser extension wallet — no URL required
+// WalletProvider constructs new ExtensionAdapter() internally;
+// ExtensionAdapter auto-discovers any CIP-103 compliant extension via postMessage.
 <WalletProvider config={{
   mode: 'extension',
 }}>
 ```
 
-Both modes accept an optional `additionalAdapters` field for passing extra dapp-sdk adapters.
+`gatewayUrl` is only required when `mode` is `'gateway'`. For `mode: 'extension'`, `WalletProvider` constructs `new ExtensionAdapter()` internally — no adapter needs to be passed by the caller.
 
-`gatewayUrl` is only required when `mode` is `'gateway'`. Extension wallet users do not need to supply a URL.
+Both modes accept an optional `additionalAdapters` field as an escape hatch for advanced cases (e.g. supporting multiple extension wallets simultaneously, or injecting a custom `InjectedAdapter` in tests). Ordinary users do not need it.
 
 Exposes via context:
 - `useCantonConnection()` — status, activeParty, connect(), disconnect()
