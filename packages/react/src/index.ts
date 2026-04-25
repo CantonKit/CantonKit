@@ -1,3 +1,7 @@
+export { WalletProvider } from './WalletProvider.js'
+export type { WalletProviderConfig, WalletProviderProps } from './WalletProvider.js'
+
+// Deprecated — kept for one release cycle
 export { CantonProvider } from './CantonProvider.js'
 export type { CantonProviderConfig, CantonProviderProps } from './CantonProvider.js'
 

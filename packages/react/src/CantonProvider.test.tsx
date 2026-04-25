@@ -10,7 +10,7 @@ describe('CantonProvider', () => {
     const fake = createFakeDappClient()
     const { result } = renderHook(() => useCantonClient(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
@@ -23,7 +23,7 @@ describe('CantonProvider', () => {
     const fake = createFakeDappClient()
     const { result } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
@@ -40,7 +40,7 @@ describe('CantonProvider', () => {
 
     const { result } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
@@ -60,7 +60,7 @@ describe('CantonProvider', () => {
 
     const { result } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
@@ -77,7 +77,7 @@ describe('CantonProvider', () => {
     const fake = createFakeDappClient()
     const { result } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
@@ -103,13 +103,14 @@ describe('CantonProvider', () => {
         })),
       },
       RemoteAdapter: vi.fn(() => ({ provider: () => ({}) })),
+      ExtensionAdapter: vi.fn(() => ({ provider: () => ({}) })),
     }))
 
     // Use raw useContext so the initial (null) render doesn't throw — the
     // async dynamic-import + setState path populates context a tick later.
     const { result } = renderHook(() => useContext(CantonContext), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw' }}>{children}</CantonProvider>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw' }}>{children}</CantonProvider>
       ),
     })
 
@@ -132,6 +133,7 @@ describe('CantonProvider', () => {
         })),
       },
       RemoteAdapter: vi.fn(() => ({ provider: () => ({}) })),
+      ExtensionAdapter: vi.fn(() => ({ provider: () => ({}) })),
     }))
 
     // When constructDappClient throws, the .catch sets status to 'error' but
@@ -147,7 +149,7 @@ describe('CantonProvider', () => {
 
     renderHook(() => null, {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw' }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw' }}>
           <Probe />
           {children}
         </CantonProvider>
@@ -169,7 +171,7 @@ describe('CantonProvider', () => {
     const fake = createFakeDappClient()
     const { result } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
@@ -190,7 +192,7 @@ describe('CantonProvider', () => {
     const fake = createFakeDappClient()
     const { unmount } = renderHook(() => useCantonConnection(), {
       wrapper: ({ children }) => (
-        <CantonProvider config={{ gatewayUrl: 'https://gw', dappClient: fake as never }}>
+        <CantonProvider config={{ mode: 'gateway', gatewayUrl: 'https://gw', dappClient: fake as never }}>
           {children}
         </CantonProvider>
       ),
