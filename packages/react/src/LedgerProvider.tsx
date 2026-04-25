@@ -96,7 +96,8 @@ export function LedgerProvider({ config, children }: LedgerProviderProps): JSX.E
       status: token !== undefined ? 'connected' : 'disconnected',
       accounts: token !== undefined ? [{ partyId: party }] as Wallet[] : [],
       activeParty: token !== undefined ? party : null,
-      connect: login,
+      // Ledger mode does not use wallet adapters; opts is intentionally ignored.
+      connect: (_opts?) => login(),
       disconnect: logout,
     }),
     [token, party, login, logout]
