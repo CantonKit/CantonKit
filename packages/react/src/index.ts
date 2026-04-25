@@ -1,6 +1,12 @@
 export { WalletProvider } from './WalletProvider.js'
 export type { WalletProviderConfig, WalletProviderProps } from './WalletProvider.js'
 
+export { LedgerProvider } from './LedgerProvider.js'
+export type { LedgerProviderConfig, LedgerProviderProps, LedgerAuthConfig } from './LedgerProvider.js'
+
+export { useCantonAuth } from './hooks/useCantonAuth.js'
+export type { CantonAuthState } from './LedgerContext.js'
+
 // Deprecated — kept for one release cycle
 export { CantonProvider } from './CantonProvider.js'
 export type { CantonProviderConfig, CantonProviderProps } from './CantonProvider.js'
