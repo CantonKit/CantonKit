@@ -60,4 +60,35 @@ describe('viaLedgerProvider', () => {
       code: 'LEDGER_HTTP',
     })
   })
+
+  it('throws NOT_CONNECTED when getToken returns undefined', async () => {
+    let capturedProvider2: { getAccessToken: () => Promise<string> } | undefined
+    ;(LedgerProvider as unknown as ReturnType<typeof vi.fn>).mockImplementation(({ accessTokenProvider }: { accessTokenProvider: { getAccessToken: () => Promise<string> } }) => {
+      capturedProvider2 = accessTokenProvider
+      return {
+        request: async () => {
+          await capturedProvider2!.getAccessToken()
+          return {}
+        },
+      }
+    })
+
+    const transport = viaLedgerProvider('http://localhost:7575', () => undefined)
+    await expect(transport.post('/v2/state/active-contracts', {})).rejects.toMatchObject({
+      code: 'NOT_CONNECTED',
+    })
+  })
+
+  it('getAuthContext throws INVALID_ARGUMENT', async () => {
+    let capturedAuth: { getAuthContext: () => Promise<unknown> } | undefined
+    ;(LedgerProvider as unknown as ReturnType<typeof vi.fn>).mockImplementation(({ accessTokenProvider }: { accessTokenProvider: { getAuthContext: () => Promise<unknown> } }) => {
+      capturedAuth = accessTokenProvider
+      return { request: vi.fn() }
+    })
+
+    viaLedgerProvider('http://localhost:7575', () => 'tok')
+    await expect(capturedAuth!.getAuthContext()).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    })
+  })
 })

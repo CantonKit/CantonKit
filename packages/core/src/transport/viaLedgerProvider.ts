@@ -9,7 +9,11 @@ export function viaLedgerProvider(
   const provider = new LedgerProvider({
     baseUrl: ledgerUrl,
     accessTokenProvider: {
-      getAccessToken: async () => getToken() ?? '',
+      getAccessToken: async () => {
+        const tok = getToken()
+        if (!tok) throw new CantonError('NOT_CONNECTED', 'LedgerProvider: no token available — ensure auth.token is set or call login()')
+        return tok
+      },
       getAuthContext: async () => {
         throw new CantonError('INVALID_ARGUMENT', 'getAuthContext not supported in viaLedgerProvider')
       },
