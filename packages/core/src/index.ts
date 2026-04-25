@@ -1,5 +1,5 @@
-export { createCantonClient } from './client.js'
-export type { CantonClient, CreateCantonClientOptions } from './client.js'
+export { createCantonClient, createJsonLedgerClient } from './client.js'
+export type { CantonClient, CreateCantonClientOptions, JsonLedgerClientOptions } from './client.js'
 
 export { CantonError } from './error.js'
 export type { CantonErrorCode } from './error.js'

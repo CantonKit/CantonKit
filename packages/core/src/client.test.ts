@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createFakeDappClient } from './test/fakeDappClient.js'
-import { createCantonClient } from './client.js'
+import { createCantonClient, createJsonLedgerClient } from './client.js'
 import { templateId } from './types/commands.js'
 
 describe('createCantonClient', () => {
@@ -90,5 +90,20 @@ describe('createCantonClient', () => {
     const result = await client.submit({ commands: [], actAs: ['Alice'] })
     expect(result).toBeNull()
     expect(fake.__calls.prepareExecute).toHaveLength(1)
+  })
+})
+
+describe('createJsonLedgerClient', () => {
+  it('returns a CantonClient with all required methods', () => {
+    const client = createJsonLedgerClient({
+      ledgerUrl: 'http://localhost:7575',
+      party: 'Alice::abc',
+      getToken: () => undefined,
+    })
+    expect(typeof client.queryACS).toBe('function')
+    expect(typeof client.submit).toBe('function')
+    expect(typeof client.submitAndWait).toBe('function')
+    expect(typeof client.subscribeToTransactions).toBe('function')
+    expect(typeof client.destroy).toBe('function')
   })
 })
