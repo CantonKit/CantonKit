@@ -27,11 +27,26 @@ This design:
 
 ### WalletProvider (renamed from CantonProvider)
 
-Connects to a Canton Wallet Gateway via `@canton-network/dapp-sdk`. Responsible for wallet connection, disconnection, and party discovery. Does not accept `ledgerUrl` or `auth`.
+Connects to a Canton wallet via `@canton-network/dapp-sdk`. Responsible for wallet connection, disconnection, and party discovery. Does not accept `ledgerUrl` or `auth`.
+
+Config is a discriminated union on `mode`, because different wallet connection mechanisms require different parameters:
 
 ```tsx
-<WalletProvider config={{ gatewayUrl: 'https://gateway.example.com' }}>
+// Remote gateway (HTTP/SSE JSON-RPC endpoint)
+<WalletProvider config={{
+  mode: 'gateway',
+  gatewayUrl: 'https://gateway.example.com/api/json-rpc',
+}}>
+
+// Browser extension wallet (postMessage / window.canton injection)
+<WalletProvider config={{
+  mode: 'extension',
+}}>
 ```
+
+Both modes accept an optional `additionalAdapters` field for passing extra dapp-sdk adapters.
+
+`gatewayUrl` is only required when `mode` is `'gateway'`. Extension wallet users do not need to supply a URL.
 
 Exposes via context:
 - `useCantonConnection()` — status, activeParty, connect(), disconnect()
