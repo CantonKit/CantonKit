@@ -25,6 +25,9 @@
   "peerDependencies": {
     "@canton-network/dapp-sdk": "^1.0.0"
   },
+  "dependencies": {
+    "@canton-network/core-provider-ledger": "^1.1.0"
+  },
   "devDependencies": {
     "@canton-network/dapp-sdk": "^1.0.0",
     "@types/node": "^20.11.0"
