@@ -40,6 +40,15 @@ describe('submitViaLedger', () => {
     }
     await expect(submitViaLedger(transport, OPTS)).rejects.toMatchObject({ code: 'LEDGER_HTTP' })
   })
+
+  it('auto-generates commandId when not supplied', async () => {
+    const transport = makeTransport({})
+    await submitViaLedger(transport, { commands: [], actAs: ['Alice'] })
+    const call = (transport.post as ReturnType<typeof vi.fn>).mock.calls[0][1] as { commandId: string }
+    expect(call.commandId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    )
+  })
 })
 
 describe('submitAndWaitViaLedger', () => {
