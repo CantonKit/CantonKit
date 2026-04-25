@@ -98,17 +98,34 @@ function useCantonAuth(): CantonAuthState
 
 ## Core Library Changes
 
+### New dependencies
+
+`@canton-network/core-provider-ledger` is added as a dependency of `@cantonkit/core`. This official package provides a `LedgerProvider` class that implements the same `Provider` interface as the wallet adapters, but connects directly to the JSON Ledger API over HTTP. It handles auth token injection via an `accessTokenProvider` callback and provides full OpenAPI-typed request/response pairs. Using it avoids hand-rolling raw `fetch` calls and stays aligned with the canton-network SDK family.
+
 ### New files in `@cantonkit/core`
 
-#### `packages/core/src/transport/viaFetch.ts`
-Implements `LedgerTransport` using `fetch` directly against the JSON Ledger API. Accepts a `getToken` callback so token refreshes are picked up automatically without rebuilding the transport.
+#### `packages/core/src/transport/viaLedgerProvider.ts`
+Implements `LedgerTransport` using `@canton-network/core-provider-ledger`'s `LedgerProvider`. Accepts a `getToken` callback; token refreshes are transparent because the callback is invoked on every request.
 
 ```ts
-export function viaFetch(ledgerUrl: string, getToken: () => string | undefined): LedgerTransport
+import { LedgerProvider } from '@canton-network/core-provider-ledger'
+
+export function viaLedgerProvider(
+  ledgerUrl: string,
+  getToken: () => string | undefined
+): LedgerTransport {
+  const provider = new LedgerProvider({
+    baseUrl: ledgerUrl,
+    accessTokenProvider: { getAccessToken: () => getToken() ?? '' },
+  })
+  // wraps provider.request({ method: 'ledgerApi', ... }) into LedgerTransport
+}
 ```
 
+This replaces the previously proposed `viaFetch.ts`. The structure mirrors the existing `viaLedgerApi.ts` (which wraps `DappClient.ledgerApi`), keeping the two transports symmetric.
+
 #### `packages/core/src/ledger/submitViaLedger.ts`
-Implements submit and submitAndWait by calling `POST /v2/commands/submit` and `POST /v2/commands/submit-and-wait` directly.
+Implements submit and submitAndWait by calling `POST /v2/commands/submit` and `POST /v2/commands/submit-and-wait` via the same `LedgerProvider` instance.
 
 #### `packages/core/src/client.ts` (extended)
 New export alongside the existing `createCantonClient`:
@@ -238,7 +255,7 @@ pnpm dev
 
 | File | Change |
 |---|---|
-| `packages/core/src/transport/viaFetch.ts` | New |
+| `packages/core/src/transport/viaLedgerProvider.ts` | New |
 | `packages/core/src/ledger/submitViaLedger.ts` | New |
 | `packages/core/src/client.ts` | Add `createJsonLedgerClient` |
 | `packages/core/src/index.ts` | Export new types and function |
