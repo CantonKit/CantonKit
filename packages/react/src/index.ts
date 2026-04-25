@@ -24,9 +24,9 @@ export { useTransactionStream } from './hooks/useTransactionStream.js'
 export type { UseTransactionStreamOptions } from './hooks/useTransactionStream.js'
 
 // Re-export commonly used core types so apps need fewer imports.
+export { CantonError } from '@cantonkit/core'
 export type {
   CantonClient,
-  CantonError,
   CantonErrorCode,
   ActiveContract,
   QueryACSOptions,
