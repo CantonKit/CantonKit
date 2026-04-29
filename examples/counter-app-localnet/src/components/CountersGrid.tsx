@@ -1,7 +1,7 @@
 import { Spinner } from '@heroui/react'
 import { AnimatePresence } from 'framer-motion'
 import { CounterCard } from './CounterCard'
-import { EmptyState } from './EmptyState'
+import { CreateCounterTile } from './CreateCounterTile'
 
 export interface CounterRow {
   contractId: string
@@ -14,6 +14,7 @@ interface CountersGridProps {
   error: unknown
   isPending: boolean
   onIncrement: (contractId: string) => void
+  onCreate: () => void
 }
 
 export function CountersGrid({
@@ -22,6 +23,7 @@ export function CountersGrid({
   error,
   isPending,
   onIncrement,
+  onCreate,
 }: CountersGridProps) {
   if (isLoading) {
     return (
@@ -39,20 +41,10 @@ export function CountersGrid({
     )
   }
 
-  if (!counters?.length) {
-    return (
-      <EmptyState
-        icon={<span className="text-xl">🔢</span>}
-        title="No counters yet"
-        body="Click “New counter” in the top bar to create your first counter contract."
-      />
-    )
-  }
-
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <AnimatePresence initial={false}>
-        {counters.map((c) => (
+        {counters?.map((c) => (
           <CounterCard
             key={c.contractId}
             contractId={c.contractId}
@@ -63,6 +55,7 @@ export function CountersGrid({
           />
         ))}
       </AnimatePresence>
+      <CreateCounterTile isPending={isPending} onPress={onCreate} />
     </div>
   )
 }

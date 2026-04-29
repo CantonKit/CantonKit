@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { useMemo, useRef } from 'react'
 import {
   useContracts,
   useSubmit,
@@ -19,6 +20,54 @@ interface Counter {
   count: number
 }
 
+function useStableCounterOrder(
+  rows: CounterRow[] | undefined,
+  events: StreamEvent[],
+): CounterRow[] | undefined {
+  const orderRef = useRef<string[]>([])
+  const seenEventsRef = useRef(0)
+
+  return useMemo(() => {
+    if (!rows) return rows
+
+    // Walk new stream events: when a transaction archives one contract and
+    // creates one in its place (an Increment), swap the id in our order list
+    // so the counter keeps its slot instead of jumping to the end.
+    const newEvents = events.slice(seenEventsRef.current)
+    seenEventsRef.current = events.length
+    for (const e of newEvents) {
+      if (e.source !== 'ledger') continue
+      const archived = e.events
+        .filter((ev) => ev.kind === 'archived')
+        .map((ev) => ev.contractId)
+      const created = e.events
+        .filter((ev) => ev.kind === 'created')
+        .map((ev) => ev.contractId)
+      if (archived.length === 1 && created.length === 1) {
+        const idx = orderRef.current.indexOf(archived[0])
+        if (idx >= 0) {
+          orderRef.current[idx] = created[0]
+        }
+      }
+    }
+
+    // Reconcile order list with the current rows: drop missing ids, append new.
+    const ids = new Set(rows.map((r) => r.contractId))
+    orderRef.current = orderRef.current.filter((id) => ids.has(id))
+    for (const r of rows) {
+      if (!orderRef.current.includes(r.contractId)) {
+        orderRef.current.push(r.contractId)
+      }
+    }
+
+    const positions = new Map(orderRef.current.map((id, i) => [id, i]))
+    return [...rows].sort(
+      (a, b) =>
+        (positions.get(a.contractId) ?? 0) - (positions.get(b.contractId) ?? 0),
+    )
+  }, [rows, events])
+}
+
 export function CounterApp() {
   const party = import.meta.env.VITE_PARTY as string | undefined
 
@@ -30,6 +79,10 @@ export function CounterApp() {
   const stream = useTransactionStream({
     filter: { templateIds: [COUNTER], parties: party ? [party] : [] },
   })
+
+  const rows = counters.data as CounterRow[] | undefined
+  const events = stream.events as unknown as StreamEvent[]
+  const sortedRows = useStableCounterOrder(rows, events)
 
   if (!party) {
     return <NoPartyState />
@@ -63,21 +116,15 @@ export function CounterApp() {
       actAs: [party],
     })
 
-  const rows: CounterRow[] | undefined = counters.data as CounterRow[] | undefined
-  const totalCount = rows?.reduce((acc, r) => acc + (r.payload.count ?? 0), 0) ?? 0
-  const events = stream.events as unknown as StreamEvent[]
+  const totalCount =
+    sortedRows?.reduce((acc, r) => acc + (r.payload.count ?? 0), 0) ?? 0
 
   return (
     <>
-      <TopNav
-        party={party}
-        connected={stream.isConnected}
-        isCreating={submit.isPending}
-        onCreate={createCounter}
-      />
+      <TopNav party={party} connected={stream.isConnected} />
       <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
         <StatsStrip
-          countersCount={rows?.length ?? 0}
+          countersCount={sortedRows?.length ?? 0}
           totalCount={totalCount}
           eventsCount={events.length}
         />
@@ -86,15 +133,16 @@ export function CounterApp() {
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className="text-base font-semibold">Counters</h2>
               <span className="text-xs text-default-400 nums">
-                {rows?.length ?? 0} active
+                {sortedRows?.length ?? 0} active
               </span>
             </div>
             <CountersGrid
-              counters={rows}
+              counters={sortedRows}
               isLoading={counters.isLoading}
               error={counters.error}
               isPending={submit.isPending}
               onIncrement={incrementCounter}
+              onCreate={createCounter}
             />
           </section>
           <aside className="lg:col-span-1">

@@ -1,14 +1,12 @@
-import { Button, Chip } from '@heroui/react'
+import { Chip } from '@heroui/react'
 import { LiveIndicator } from './LiveIndicator'
 
 interface TopNavProps {
   party: string
   connected: boolean
-  isCreating: boolean
-  onCreate: () => void
 }
 
-export function TopNav({ party, connected, isCreating, onCreate }: TopNavProps) {
+export function TopNav({ party, connected }: TopNavProps) {
   return (
     <nav className="sticky top-0 z-30 border-b border-white/5 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
@@ -31,15 +29,6 @@ export function TopNav({ party, connected, isCreating, onCreate }: TopNavProps) 
             {party}
           </Chip>
           <LiveIndicator connected={connected} />
-          <Button
-            color="primary"
-            size="sm"
-            isLoading={isCreating}
-            onPress={onCreate}
-            className="bg-gradient-to-br from-indigo-500 to-violet-500 font-medium"
-          >
-            New counter
-          </Button>
         </div>
       </div>
     </nav>
