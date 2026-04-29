@@ -1,24 +1,28 @@
 import { StatCard } from './StatCard'
 
 interface StatsStripProps {
-  countersCount: number
+  chainsCount: number
   totalCount: number
   eventsCount: number
 }
 
-export function StatsStrip({ countersCount, totalCount, eventsCount }: StatsStripProps) {
+export function StatsStrip({
+  chainsCount,
+  totalCount,
+  eventsCount,
+}: StatsStripProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <StatCard
-        label="Counters"
-        value={countersCount}
-        hint="active contracts"
-        icon={<span className="text-xl">🔢</span>}
+        label="Chains"
+        value={chainsCount}
+        hint="active lineages"
+        icon={<span className="text-xl">🔗</span>}
       />
       <StatCard
         label="Total count"
         value={totalCount}
-        hint="sum across counters"
+        hint="sum across heads"
         icon={<span className="text-xl">∑</span>}
       />
       <StatCard
