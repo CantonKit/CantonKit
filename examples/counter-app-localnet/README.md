@@ -81,8 +81,9 @@ cp .env.example .env
 Edit `.env`:
 
 ```
-# From the sandbox startup output: "Listening at ports: ... 6864(HTTP)"
-VITE_LEDGER_URL=http://localhost:6864
+# Points to the Vite dev server, which proxies /v2/* to the sandbox at localhost:6864.
+# This avoids browser CORS restrictions — do not set this to localhost:6864 directly.
+VITE_LEDGER_URL=http://localhost:5173
 
 # From the `party` field in the curl response in step 3
 VITE_PARTY=Alice::12206ddafd03ec2d5fad1f7ec093814a607c60981a7822e65472262de8447a6a7fe0

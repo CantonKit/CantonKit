@@ -7,7 +7,7 @@ import {
 } from '@cantonkit/react'
 import { templateId } from '@cantonkit/core'
 
-const COUNTER = templateId('#counter-1.0.0:Counter:Counter')
+const COUNTER = templateId('#counter:Counter:Counter')
 
 interface Counter {
   owner: string

@@ -11,10 +11,12 @@ export async function submitViaLedger(
   opts: SubmitOptions
 ): Promise<null> {
   const commandId = opts.commandId ?? defaultUuid()
+  const userId = opts.actAs[0] ?? 'unknown'
   const body: Record<string, unknown> = {
     commands: opts.commands,
     actAs: opts.actAs,
     commandId,
+    userId,
   }
   if (opts.readAs !== undefined) body.readAs = opts.readAs
   if (opts.deduplicationDuration !== undefined) body.deduplicationDuration = opts.deduplicationDuration
@@ -31,10 +33,12 @@ export async function submitAndWaitViaLedger(
   opts: SubmitOptions
 ): Promise<SubmitResult> {
   const commandId = opts.commandId ?? defaultUuid()
+  const userId = opts.actAs[0] ?? 'unknown'
   const body: Record<string, unknown> = {
     commands: opts.commands,
     actAs: opts.actAs,
     commandId,
+    userId,
   }
   if (opts.readAs !== undefined) body.readAs = opts.readAs
   if (opts.deduplicationDuration !== undefined) body.deduplicationDuration = opts.deduplicationDuration

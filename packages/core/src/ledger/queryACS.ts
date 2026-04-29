@@ -3,24 +3,26 @@ import type { ActiveContract, QueryACSOptions } from '../types/contracts.js'
 import type { TemplateId } from '../types/commands.js'
 import { CantonError } from '../error.js'
 
-interface RawActiveContract {
+interface RawCreatedEvent {
   contractId: string
   templateId: string
-  payload: unknown
+  createArgument: unknown
   signatories: string[]
   observers: string[]
 }
 
-interface RawResponse {
-  activeContracts: RawActiveContract[]
+interface RawACSItem {
+  contractEntry?: {
+    JsActiveContract?: {
+      createdEvent?: RawCreatedEvent
+    }
+  }
 }
 
-/**
- * Queries the JSON Ledger API v2 active contract set.
- * Endpoint: POST /v2/state/active-contracts
- * Request shape follows the v2 ACS filter format (filtersByParty + templateIds).
- * Verify against the current v2 OpenAPI spec if the server rejects the payload.
- */
+interface LedgerEndResponse {
+  offset: number
+}
+
 export async function queryACS<T = unknown>(
   transport: LedgerTransport,
   opts: QueryACSOptions
@@ -29,25 +31,40 @@ export async function queryACS<T = unknown>(
     throw new CantonError('INVALID_ARGUMENT', 'queryACS requires at least one party')
   }
 
+  const { offset } = await transport.get<LedgerEndResponse>('/v2/state/ledger-end', undefined)
+
+  // templateId must be a string. '#packageName:Module:Entity' uses package-name resolution (preferred).
+  // Do NOT strip the '#' prefix — the sandbox uses it to distinguish name vs hash.
+  const rawTemplateId = String(opts.templateId)
+
+  const identifierFilter = rawTemplateId.includes(':')
+    ? { TemplateFilter: { value: { templateId: rawTemplateId, includeCreatedEventBlob: false } } }
+    : { WildcardFilter: { value: { includeCreatedEventBlob: false } } }
+
   const body = {
     filter: {
       filtersByParty: Object.fromEntries(
         opts.parties.map((p) => [
           p,
-          { cumulative: [{ identifierFilter: { templateFilter: { templateId: opts.templateId } } }] },
+          { cumulative: [{ identifierFilter }] },
         ])
       ),
     },
+    activeAtOffset: offset,
     verbose: false,
   }
 
-  const raw = await transport.post<RawResponse>('/v2/state/active-contracts', body)
+  const raw = await transport.post<RawACSItem[]>('/v2/state/active-contracts', body)
 
-  return raw.activeContracts.map((c) => ({
-    contractId: c.contractId,
-    templateId: c.templateId as TemplateId,
-    payload: c.payload as T,
-    signatories: c.signatories,
-    observers: c.observers,
-  }))
+  return raw.flatMap((item) => {
+    const event = item.contractEntry?.JsActiveContract?.createdEvent
+    if (!event) return []
+    return [{
+      contractId: event.contractId,
+      templateId: event.templateId as TemplateId,
+      payload: event.createArgument as T,
+      signatories: event.signatories,
+      observers: event.observers,
+    }]
+  })
 }
