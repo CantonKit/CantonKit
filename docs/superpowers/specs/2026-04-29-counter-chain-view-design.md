@@ -31,7 +31,9 @@ Chain root              head     action
   archived ──────────  active
 ```
 
-When a chain has more than `COLLAPSE_THRESHOLD = 12` nodes total, the middle is collapsed to a single placeholder node (`…`) and the chain renders as **first 4 oldest + placeholder + last 6 newest** (11 visual items, hiding `length - 10` real nodes). Below or at the threshold, every node is visible. The placeholder shows a HeroUI `Tooltip` on hover listing the hidden range, e.g. `count 4 – 17 (14 nodes hidden)`. No expand-on-click in v1.
+When a chain has more than `COLLAPSE_THRESHOLD = 12` nodes total, the middle is collapsed to a single placeholder node (`…`) and the chain renders as **first 4 oldest + placeholder + last 6 newest** (11 visual items, hiding `length - 10` real nodes). Below or at the threshold, every node is visible. The placeholder shows a HeroUI `Tooltip` on hover listing the hidden range, e.g. `count 4 – 17 (14 nodes hidden)`.
+
+**Click-to-expand:** Clicking the placeholder expands the chain inline — every hidden node renders in place, the placeholder disappears, and the strip retains horizontal scroll. The expanded state is per-chain (each chain tracks its own boolean), held in `<ChainView/>` local state so it resets only on full unmount, not on stream updates. When expanded, a small "Collapse" pill appears in the chain's header row (right of the title) so the user can collapse back without scrolling. Expanded state survives Increment events on that chain.
 
 ## Layout
 
@@ -153,6 +155,8 @@ Chains keep their slot via `prevHeadByRoot: Map<rootId, headId>` tracked in a re
    - Click it → chain row appears with a single highlighted head node `0` and `+1` button.
    - Click `+1` 5 times → nodes `0 1 2 3 4 5` appear, head animates from each previous to the new value, container scrolls right.
    - Click `+1` 8 more times (total 13 nodes including the head) → middle collapses to `…` after the 4th oldest node; the 6 most recent nodes remain visible on the right.
+   - Click the `…` placeholder → all hidden nodes render in place, a "Collapse" pill appears in the chain header. Click "Collapse" → returns to the collapsed view.
+   - With the chain expanded, click `+1` once more → expanded view stays expanded; the new head node appears at the right.
    - Click "Start a new chain" → second chain row appears below the first; it's empty save for one head and `+1`.
    - Reload page → both chains rebuild from stream replay; ordering stable (chain 1 above chain 2).
    - Hover an archived node → tooltip with full contractId.
@@ -160,7 +164,6 @@ Chains keep their slot via `prevHeadByRoot: Map<rootId, headId>` tracked in a re
 
 ## Out of scope (future)
 
-- Click-to-expand the collapsed segment.
 - Per-chain rename / labels.
 - Branching chains (multi-archive transactions).
 - Persisting chain order across reloads via localStorage.
