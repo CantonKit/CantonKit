@@ -71,7 +71,7 @@ export function CounterApp() {
     })
 
   const totalCount =
-    chains?.reduce((acc, c) => acc + (c.head.payload.count ?? 0), 0) ?? 0
+    chains?.reduce((acc, c) => acc + Number(c.head.payload.count ?? 0), 0) ?? 0
 
   return (
     <>
