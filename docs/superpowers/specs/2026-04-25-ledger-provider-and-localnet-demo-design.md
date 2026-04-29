@@ -220,7 +220,7 @@ Configures sandbox with no authentication and the Counter module.
 ### .env.example
 
 ```
-VITE_LEDGER_URL=http://localhost:7575
+VITE_LEDGER_URL=http://localhost:6864
 VITE_PARTY=                # paste party ID from daml start output
 VITE_TOKEN=                # leave empty if sandbox auth is disabled
 ```
@@ -228,16 +228,22 @@ VITE_TOKEN=                # leave empty if sandbox auth is disabled
 ### Running the demo
 
 ```bash
-# 1. Install Daml SDK
-curl -sSL https://get.daml.com/ | sh
+# 1. Install dpm (replaces the old Daml SDK installer)
+curl -sSL https://get.digitalasset.com/install/install.sh | sh
 
-# 2. Start sandbox
+# 2. Install the SDK version pinned in daml.yaml
 cd examples/counter-app-localnet/daml
-daml start
+dpm install 3.4.11
 
-# 3. Copy party ID from sandbox output, fill .env
+# 3. Build the Daml archive
+dpm build
 
-# 4. Start frontend (separate terminal)
+# 4. Start sandbox (no-auth mode; parties from daml.yaml are auto-allocated)
+dpm sandbox --dar .daml/dist/counter-1.0.0.dar
+
+# 5. Copy party ID from sandbox output, fill .env
+
+# 6. Start frontend (separate terminal)
 cd examples/counter-app-localnet
 pnpm dev
 ```
@@ -246,7 +252,7 @@ pnpm dev
 
 ## What is NOT in scope
 
-- Party allocation UI (use `curl` or `daml ledger allocate-parties`)
+- Party allocation UI (parties are declared in `daml.yaml`; `dpm sandbox` allocates them automatically)
 - Token generation UI (use `.env` or a script)
 - OAuth2 provider setup (design covers the interface; wiring to a real provider is a follow-up)
 - Changes to existing tests
