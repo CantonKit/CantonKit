@@ -145,6 +145,33 @@ describe('createLedgerStream', () => {
     expect(FakeWebSocket.instances).toHaveLength(2)
   })
 
+  it('resumes from last delivered offset on reconnect', () => {
+    const stream = createLedgerStream(
+      { ledgerUrl: 'https://ledger.example', auth: { token: 'TKN' } },
+      deps()
+    )
+    stream({ onEvent: () => undefined })
+    const ws1 = FakeWebSocket.instances[0]!
+    ws1.__open()
+    const initial = JSON.parse(ws1.sent[0]!)
+    expect(initial.beginExclusive).toBe(0)
+
+    ws1.__message({
+      update: {
+        Transaction: {
+          value: { updateId: 'u1', offset: 42, effectiveAt: 't', events: [] },
+        },
+      },
+    })
+    ws1.__close(1006)
+    vi.advanceTimersByTime(1000)
+
+    const ws2 = FakeWebSocket.instances[1]!
+    ws2.__open()
+    const resumed = JSON.parse(ws2.sent[0]!)
+    expect(resumed.beginExclusive).toBe(42)
+  })
+
   it('does not reconnect after explicit unsubscribe', () => {
     const stream = createLedgerStream(
       { ledgerUrl: 'https://ledger.example', auth: { token: 'TKN' } },

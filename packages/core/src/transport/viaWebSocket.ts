@@ -30,7 +30,10 @@ function toWss(url: string): string {
   return url.replace(/^http/, 'ws') + '/v2/updates/flats'
 }
 
-function buildRequest(filter: SubscribeOptions['filter']): Record<string, unknown> {
+function buildRequest(
+  filter: SubscribeOptions['filter'],
+  beginExclusive: number
+): Record<string, unknown> {
   const parties = filter?.parties ?? []
   const templateIds = filter?.templateIds ?? []
   const cumulative =
@@ -54,7 +57,7 @@ function buildRequest(filter: SubscribeOptions['filter']): Record<string, unknow
     filtersByParty[p] = { cumulative }
   }
   return {
-    beginExclusive: 0,
+    beginExclusive,
     updateFormat: {
       includeTransactions: {
         transactionShape: 'TRANSACTION_SHAPE_ACS_DELTA',
@@ -112,6 +115,9 @@ export function createLedgerStream(
     let attempt = 0
     let currentSocket: WebSocket | null = null
     let pendingTimer: unknown = null
+    // Track the highest offset we've successfully delivered so reconnects
+    // resume from there rather than replaying history from offset 0.
+    let lastOffset = 0
 
     const connect = () => {
       if (stopped) return
@@ -121,13 +127,17 @@ export function createLedgerStream(
       currentSocket = ws
       ws.onopen = () => {
         attempt = 0
-        ws.send(JSON.stringify(buildRequest(opts.filter)))
+        ws.send(JSON.stringify(buildRequest(opts.filter, lastOffset)))
       }
       ws.onmessage = (ev: MessageEvent) => {
         try {
           const parsed = JSON.parse(typeof ev.data === 'string' ? ev.data : String(ev.data))
           const event = toLedgerEvent(parsed)
           if (event) {
+            const numeric = Number(event.offset)
+            if (Number.isFinite(numeric) && numeric > lastOffset) {
+              lastOffset = numeric
+            }
             const emit: TransactionEvent = event
             opts.onEvent?.(emit)
           }
