@@ -1,0 +1,12 @@
+module Counter where
+
+template Counter
+  with
+    owner : Party
+    count : Int
+  where
+    signatory owner
+
+    choice Increment : ContractId Counter
+      controller owner
+      do create this with count = count + 1
