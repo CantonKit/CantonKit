@@ -7,3 +7,25 @@ body,
 #root {
   min-height: 100%;
 }
+
+body {
+  background:
+    radial-gradient(80rem 50rem at 100% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(60rem 40rem at -10% 110%, rgba(139, 92, 246, 0.12), transparent 60%),
+    linear-gradient(180deg, #07080d 0%, #0b0d14 100%);
+  background-attachment: fixed;
+}
+
+@layer utilities {
+  .nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
