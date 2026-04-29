@@ -22,50 +22,44 @@ interface Counter {
 
 function useStableCounterOrder(
   rows: CounterRow[] | undefined,
-  events: StreamEvent[],
 ): CounterRow[] | undefined {
   const orderRef = useRef<string[]>([])
-  const seenEventsRef = useRef(0)
+  const prevIdsRef = useRef<string[]>([])
 
   return useMemo(() => {
     if (!rows) return rows
 
-    // Walk new stream events: when a transaction archives one contract and
-    // creates one in its place (an Increment), swap the id in our order list
-    // so the counter keeps its slot instead of jumping to the end.
-    const newEvents = events.slice(seenEventsRef.current)
-    seenEventsRef.current = events.length
-    for (const e of newEvents) {
-      if (e.source !== 'ledger') continue
-      const archived = e.events
-        .filter((ev) => ev.kind === 'archived')
-        .map((ev) => ev.contractId)
-      const created = e.events
-        .filter((ev) => ev.kind === 'created')
-        .map((ev) => ev.contractId)
-      if (archived.length === 1 && created.length === 1) {
-        const idx = orderRef.current.indexOf(archived[0])
-        if (idx >= 0) {
-          orderRef.current[idx] = created[0]
-        }
+    const currIds = rows.map((r) => r.contractId)
+    const prevIds = prevIdsRef.current
+    const currSet = new Set(currIds)
+    const prevSet = new Set(prevIds)
+    const disappeared = prevIds.filter((id) => !currSet.has(id))
+    const appeared = currIds.filter((id) => !prevSet.has(id))
+
+    // Increment archives the old contract and creates a new one. If exactly
+    // one id disappeared and one appeared, treat it as a swap and keep the
+    // new contract in the old contract's slot.
+    if (disappeared.length === 1 && appeared.length === 1) {
+      const idx = orderRef.current.indexOf(disappeared[0])
+      if (idx >= 0) {
+        orderRef.current[idx] = appeared[0]
       }
     }
 
-    // Reconcile order list with the current rows: drop missing ids, append new.
-    const ids = new Set(rows.map((r) => r.contractId))
-    orderRef.current = orderRef.current.filter((id) => ids.has(id))
-    for (const r of rows) {
-      if (!orderRef.current.includes(r.contractId)) {
-        orderRef.current.push(r.contractId)
-      }
+    // Reconcile: drop ids not in current rows, append truly new ones.
+    orderRef.current = orderRef.current.filter((id) => currSet.has(id))
+    for (const id of currIds) {
+      if (!orderRef.current.includes(id)) orderRef.current.push(id)
     }
+
+    prevIdsRef.current = currIds
 
     const positions = new Map(orderRef.current.map((id, i) => [id, i]))
     return [...rows].sort(
       (a, b) =>
         (positions.get(a.contractId) ?? 0) - (positions.get(b.contractId) ?? 0),
     )
-  }, [rows, events])
+  }, [rows])
 }
 
 export function CounterApp() {
@@ -82,7 +76,7 @@ export function CounterApp() {
 
   const rows = counters.data as CounterRow[] | undefined
   const events = stream.events as unknown as StreamEvent[]
-  const sortedRows = useStableCounterOrder(rows, events)
+  const sortedRows = useStableCounterOrder(rows)
 
   if (!party) {
     return <NoPartyState />
