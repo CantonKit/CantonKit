@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 import {
   LedgerProvider,
-  useCantonAuth,
   useContracts,
   useSubmit,
   useTransactionStream,
@@ -16,7 +15,6 @@ interface Counter {
 }
 
 function CounterApp() {
-  const { isAuthenticated } = useCantonAuth()
   const counters = useContracts<Counter>({
     templateId: COUNTER,
     parties: [import.meta.env.VITE_PARTY],
@@ -26,11 +24,11 @@ function CounterApp() {
     filter: { templateIds: [COUNTER], parties: [import.meta.env.VITE_PARTY] },
   })
 
-  if (!isAuthenticated) {
+  if (!import.meta.env.VITE_PARTY) {
     return (
       <main>
         <h1>CantonKit Counter — Localnet</h1>
-        <p>No token configured. Set VITE_TOKEN in your .env file.</p>
+        <p>No party configured. Set VITE_PARTY in your .env file.</p>
       </main>
     )
   }
