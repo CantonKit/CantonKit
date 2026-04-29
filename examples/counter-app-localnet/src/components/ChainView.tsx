@@ -172,17 +172,19 @@ export function ChainView({
           })}
 
           <ChainConnector variant="brand" />
-          <motion.div whileTap={{ scale: 0.96 }} className="shrink-0">
-            <Button
-              size="md"
-              color="primary"
-              isLoading={isPending}
-              onPress={() => onIncrement(chain.headId)}
-              className="bg-gradient-to-br from-indigo-500 to-violet-500 font-medium"
-            >
-              +1
-            </Button>
-          </motion.div>
+          <motion.button
+            type="button"
+            onClick={() => onIncrement(chain.headId)}
+            disabled={isPending}
+            whileTap={{ scale: 0.95 }}
+            className="flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-large bg-gradient-to-br from-indigo-500 to-violet-500 font-semibold text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.6)] ring-1 ring-white/20 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Increment counter"
+          >
+            <span className="text-2xl leading-none nums">+1</span>
+            <span className="text-[10px] leading-none text-white/70">
+              {isPending ? 'sending…' : 'increment'}
+            </span>
+          </motion.button>
         </div>
       </CardBody>
     </Card>

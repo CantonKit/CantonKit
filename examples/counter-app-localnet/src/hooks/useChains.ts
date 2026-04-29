@@ -32,6 +32,19 @@ interface ChainGraph {
   rootIds: Set<string>
 }
 
+function coerceCount(value: unknown): number {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+  }
+  return 0
+}
+
+function readCount(payload: unknown): number {
+  return coerceCount((payload as { count?: unknown } | null | undefined)?.count)
+}
+
 function buildChainGraph(events: StreamEvent[]): ChainGraph {
   const countById = new Map<string, number>()
   const nextOf = new Map<string, string>()
@@ -41,24 +54,22 @@ function buildChainGraph(events: StreamEvent[]): ChainGraph {
   for (const e of events) {
     if (e.source !== 'ledger') continue
 
-    const created: Array<{ contractId: string; count: number }> = []
+    const created: string[] = []
     const archived: string[] = []
     for (const ev of e.events) {
       if (ev.kind === 'created') {
-        const payload = ev.payload as { count?: unknown } | undefined
-        const count = typeof payload?.count === 'number' ? payload.count : 0
-        countById.set(ev.contractId, count)
-        created.push({ contractId: ev.contractId, count })
+        countById.set(ev.contractId, readCount(ev.payload))
+        created.push(ev.contractId)
       } else if (ev.kind === 'archived') {
         archived.push(ev.contractId)
       }
     }
 
     if (created.length === 1 && archived.length === 0) {
-      rootIds.add(created[0].contractId)
+      rootIds.add(created[0])
     } else if (created.length === 1 && archived.length === 1) {
-      nextOf.set(archived[0], created[0].contractId)
-      prevOf.set(created[0].contractId, archived[0])
+      nextOf.set(archived[0], created[0])
+      prevOf.set(created[0], archived[0])
     }
   }
 
@@ -86,13 +97,14 @@ export function buildChains(
     const partial = !graph.rootIds.has(rootId)
 
     // Walk forward from root to head, emitting nodes
+    const headCount = coerceCount(head.payload.count)
     const nodes: ChainNodeData[] = []
     let id: string | undefined = rootId
     const visited = new Set<string>()
     while (id && !visited.has(id)) {
       visited.add(id)
       const isHead = id === head.contractId
-      const count = isHead ? head.payload.count : graph.countById.get(id) ?? 0
+      const count = isHead ? headCount : graph.countById.get(id) ?? 0
       nodes.push({ contractId: id, count, archived: !isHead })
       if (isHead) break
       id = graph.nextOf.get(id)
