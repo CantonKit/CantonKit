@@ -92,7 +92,29 @@ function CounterApp() {
       <p>Stream: {stream.isConnected ? 'open' : 'closed'}</p>
       <ul>
         {stream.events.map((e) => (
-          <li key={e.updateId}>{e.updateId}</li>
+          <li key={e.updateId}>
+            {e.source === 'ledger' ? (
+              <>
+                <code>{e.updateId.slice(0, 8)}…</code> @ offset {e.offset}{' '}
+                <small>({e.effectiveAt})</small>
+                <ul>
+                  {e.events.map((ev, i) => (
+                    <li key={i}>
+                      <strong>{ev.kind}</strong> {ev.contractId.slice(0, 8)}…
+                      {ev.kind === 'created' && ev.payload
+                        ? ` count=${(ev.payload as Counter).count}`
+                        : ''}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <>
+                <strong>wallet</strong> {e.status} —{' '}
+                <code>{e.updateId.slice(0, 8)}…</code>
+              </>
+            )}
+          </li>
         ))}
       </ul>
     </main>
