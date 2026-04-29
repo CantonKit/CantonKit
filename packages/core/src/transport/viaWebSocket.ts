@@ -67,6 +67,54 @@ function buildRequest(
   }
 }
 
+interface RawLedgerEventBody {
+  contractId: string
+  templateId: string
+  createArgument?: unknown
+  choice?: string
+  exerciseArgument?: unknown
+  exerciseResult?: unknown
+}
+
+interface RawTransaction {
+  updateId: string
+  offset: string | number
+  effectiveAt: string
+  events: Array<Record<string, RawLedgerEventBody>>
+}
+
+function normalizeEvent(
+  envelope: Record<string, RawLedgerEventBody>
+): LedgerTxEvent['events'][number] | null {
+  if (envelope.CreatedEvent) {
+    const e = envelope.CreatedEvent
+    return {
+      kind: 'created',
+      contractId: e.contractId,
+      templateId: e.templateId as LedgerTxEvent['events'][number]['templateId'],
+      payload: e.createArgument,
+    }
+  }
+  if (envelope.ArchivedEvent) {
+    const e = envelope.ArchivedEvent
+    return {
+      kind: 'archived',
+      contractId: e.contractId,
+      templateId: e.templateId as LedgerTxEvent['events'][number]['templateId'],
+    }
+  }
+  if (envelope.ExercisedEvent) {
+    const e = envelope.ExercisedEvent
+    return {
+      kind: 'exercised',
+      contractId: e.contractId,
+      templateId: e.templateId as LedgerTxEvent['events'][number]['templateId'],
+      payload: e.exerciseResult,
+    }
+  }
+  return null
+}
+
 function toLedgerEvent(raw: unknown): LedgerTxEvent | null {
   const obj = raw as {
     update?: { Transaction?: { value?: unknown } }
@@ -74,20 +122,18 @@ function toLedgerEvent(raw: unknown): LedgerTxEvent | null {
     transaction?: unknown
   }
   const t = (obj.update?.Transaction?.value ?? obj.transaction) as
-    | {
-        updateId: string
-        offset: string | number
-        effectiveAt: string
-        events: LedgerTxEvent['events']
-      }
+    | RawTransaction
     | undefined
   if (!t) return null
+  const events = (t.events ?? [])
+    .map(normalizeEvent)
+    .filter((e): e is LedgerTxEvent['events'][number] => e !== null)
   return {
     source: 'ledger',
     updateId: t.updateId,
     offset: String(t.offset),
     effectiveAt: t.effectiveAt,
-    events: t.events,
+    events,
   }
 }
 

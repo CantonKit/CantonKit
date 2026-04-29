@@ -113,6 +113,47 @@ describe('createLedgerStream', () => {
     expect(received[0]).toMatchObject({ source: 'ledger', updateId: 'u1' })
   })
 
+  it('normalizes raw CreatedEvent / ArchivedEvent envelopes', () => {
+    const stream = createLedgerStream(
+      { ledgerUrl: 'https://ledger.example', auth: { token: 'TKN' } },
+      deps()
+    )
+    const received: unknown[] = []
+    stream({ onEvent: (e) => received.push(e) })
+    const ws = FakeWebSocket.instances[0]!
+    ws.__open()
+    ws.__message({
+      update: {
+        Transaction: {
+          value: {
+            updateId: 'u1',
+            offset: 10,
+            effectiveAt: 't',
+            events: [
+              {
+                CreatedEvent: {
+                  contractId: 'c1',
+                  templateId: 'pkg:M:T',
+                  createArgument: { count: '0' },
+                },
+              },
+              {
+                ArchivedEvent: { contractId: 'c2', templateId: 'pkg:M:T' },
+              },
+            ],
+          },
+        },
+      },
+    })
+    expect(received[0]).toMatchObject({
+      source: 'ledger',
+      events: [
+        { kind: 'created', contractId: 'c1', payload: { count: '0' } },
+        { kind: 'archived', contractId: 'c2' },
+      ],
+    })
+  })
+
   it('reports UNKNOWN via onError when server sends unparseable JSON', () => {
     const onError = vi.fn()
     const stream = createLedgerStream(
