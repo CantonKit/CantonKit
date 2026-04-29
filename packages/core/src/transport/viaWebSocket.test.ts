@@ -77,7 +77,15 @@ describe('createLedgerStream', () => {
     ws.__open()
     expect(ws.sent).toHaveLength(1)
     const payload = JSON.parse(ws.sent[0]!)
-    expect(payload.filter.filtersByParty.Alice).toBeDefined()
+    const aliceFilters =
+      payload.updateFormat.includeTransactions.eventFormat.filtersByParty.Alice
+    expect(aliceFilters).toBeDefined()
+    expect(aliceFilters.cumulative[0].identifierFilter.TemplateFilter.value.templateId).toBe(
+      '#A:M:T'
+    )
+    expect(payload.updateFormat.includeTransactions.transactionShape).toBe(
+      'TRANSACTION_SHAPE_ACS_DELTA'
+    )
   })
 
   it('emits LedgerTxEvent on message', () => {
@@ -90,11 +98,15 @@ describe('createLedgerStream', () => {
     const ws = FakeWebSocket.instances[0]!
     ws.__open()
     ws.__message({
-      transaction: {
-        updateId: 'u1',
-        offset: '10',
-        effectiveAt: '2026-04-20',
-        events: [],
+      update: {
+        Transaction: {
+          value: {
+            updateId: 'u1',
+            offset: 10,
+            effectiveAt: '2026-04-20',
+            events: [],
+          },
+        },
       },
     })
     expect(received).toHaveLength(1)

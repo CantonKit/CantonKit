@@ -33,22 +33,47 @@ function toWss(url: string): string {
 function buildRequest(filter: SubscribeOptions['filter']): Record<string, unknown> {
   const parties = filter?.parties ?? []
   const templateIds = filter?.templateIds ?? []
+  const cumulative =
+    templateIds.length === 0
+      ? [
+          {
+            identifierFilter: {
+              WildcardFilter: { value: { includeCreatedEventBlob: false } },
+            },
+          },
+        ]
+      : templateIds.map((t) => ({
+          identifierFilter: {
+            TemplateFilter: {
+              value: { templateId: t, includeCreatedEventBlob: false },
+            },
+          },
+        }))
   const filtersByParty: Record<string, unknown> = {}
   for (const p of parties) {
-    filtersByParty[p] = {
-      cumulative: templateIds.map((t) => ({
-        identifierFilter: { templateFilter: { templateId: t } },
-      })),
-    }
+    filtersByParty[p] = { cumulative }
   }
-  return { filter: { filtersByParty }, verbose: false }
+  return {
+    beginExclusive: 0,
+    updateFormat: {
+      includeTransactions: {
+        transactionShape: 'TRANSACTION_SHAPE_ACS_DELTA',
+        eventFormat: { filtersByParty, verbose: false },
+      },
+    },
+  }
 }
 
 function toLedgerEvent(raw: unknown): LedgerTxEvent | null {
-  const t = (raw as { transaction?: unknown }).transaction as
+  const obj = raw as {
+    update?: { Transaction?: { value?: unknown } }
+    // Pre-3.3 servers send the transaction at the top level
+    transaction?: unknown
+  }
+  const t = (obj.update?.Transaction?.value ?? obj.transaction) as
     | {
         updateId: string
-        offset: string
+        offset: string | number
         effectiveAt: string
         events: LedgerTxEvent['events']
       }
@@ -57,7 +82,7 @@ function toLedgerEvent(raw: unknown): LedgerTxEvent | null {
   return {
     source: 'ledger',
     updateId: t.updateId,
-    offset: t.offset,
+    offset: String(t.offset),
     effectiveAt: t.effectiveAt,
     events: t.events,
   }
@@ -90,7 +115,9 @@ export function createLedgerStream(
 
     const connect = () => {
       if (stopped) return
-      const ws = new WS(toWss(config.ledgerUrl), [`jwt.token.${config.auth.token}`])
+      const protocols = ['daml.ws.auth']
+      if (config.auth.token) protocols.push(`jwt.token.${config.auth.token}`)
+      const ws = new WS(toWss(config.ledgerUrl), protocols)
       currentSocket = ws
       ws.onopen = () => {
         attempt = 0
@@ -131,7 +158,13 @@ export function createLedgerStream(
     return () => {
       stopped = true
       if (pendingTimer) clock.clearTimeout(pendingTimer)
-      currentSocket?.close()
+      const sock = currentSocket
+      if (!sock) return
+      if (sock.readyState === WS.CONNECTING) {
+        sock.addEventListener('open', () => sock.close(1000))
+      } else if (sock.readyState === WS.OPEN) {
+        sock.close(1000)
+      }
     }
   }
 }
