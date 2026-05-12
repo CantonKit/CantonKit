@@ -2,7 +2,7 @@
   "name": "@cantonkit/react",
   "version": "0.1.0",
   "description": "React provider and hooks for CantonKit.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "main": "dist/index.cjs",

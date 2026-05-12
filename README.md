@@ -1,15 +1,61 @@
 # CantonKit
 
-A TypeScript-first SDK for Canton Network frontend and fullstack developers.
+**Wagmi for Canton Network.** A TypeScript SDK that gives React (and soon Vue/Svelte) developers a familiar hook API for building Canton dApps — connect wallet, read contracts, submit transactions.
 
-CantonKit wraps [`@canton-network/dapp-sdk`](https://www.npmjs.com/package/@canton-network/dapp-sdk) with a Wagmi-style React API: a provider, three hooks, and a framework-agnostic client.
+[Twitter / X](https://x.com/CantonKit) · [Demo video](https://x.com/i/status/2053987248094466332)
+
+---
+
+## What is CantonKit?
+
+Canton Network uses a UTXO ledger model, privacy-by-default data distribution, and a prepare-sign-execute transaction flow that differs substantially from EVM. The official [`@canton-network/dapp-sdk`](https://www.npmjs.com/package/@canton-network/dapp-sdk) exposes these primitives correctly, but wiring them into a React app requires significant boilerplate: managing connection state, integrating TanStack Query for ACS polling, handling WebSocket lifecycle for live transaction streams.
+
+CantonKit is the DX layer on top. If you've used Wagmi on EVM, the API will feel familiar:
+
+```tsx
+const { status, activeParty, connect } = useCantonConnection()
+const counters = useContracts<Counter>({ templateId: COUNTER })
+const submit = useSubmit()
+```
+
+It does **not** replace `@canton-network/dapp-sdk` — it wraps it.
+
+---
+
+## What works today (v0.1)
+
+**`@cantonkit/core`** — Framework-agnostic Canton client:
+- `queryACS<T>` — typed active contract set query
+- `submitAndWait` — submit commands and wait for confirmation
+- `subscribeToTransactions` — live transaction stream with two sources: `'wallet'` (default, via the connected wallet) or `'ledger'` (direct WebSocket to the JSON Ledger API)
+- Typed error classes: `CantonSubmitError`, `CantonConnectionError`
+
+**`@cantonkit/react`** — React integration:
+- `<CantonProvider>` — wallet gateway mode (CIP-0103); wraps `DappClient` and exposes connection state
+- `<LedgerProvider>` — direct JSON Ledger API mode; no wallet required, great for localnet
+- `useCantonConnection()` — connection status, active party, connect/disconnect
+- `useContracts<T>({ templateId })` — ACS query backed by TanStack Query; handles loading/error states and cache invalidation
+- `useSubmit()` — TanStack mutation wrapping `submitAndWait`
+- `useTransactionStream({ filter, source?, bufferSize? })` — live contract events, configurable buffer
+
+**Testing utilities** (at `@cantonkit/react/testing`):
+- `createFakeCantonClient` — in-memory client for component tests
+- `TestCantonProvider` — drop-in provider replacement; no real ledger needed
+
+**Examples** in this repo:
+- [`counter-app-localnet`](./examples/counter-app-localnet) — full read / write / stream demo against a local Canton sandbox
+- [`counter-app-localnet-starter`](./examples/counter-app-localnet-starter) — blank starting template for your own app
+
+---
 
 ## Packages
 
-| Package | Purpose |
-|---|---|
-| [`@cantonkit/core`](./packages/core) | Framework-agnostic `CantonClient`: `queryACS`, `submitAndWait`, `subscribeToTransactions`, typed errors |
-| [`@cantonkit/react`](./packages/react) | `<CantonProvider>` + `useContracts`, `useSubmit`, `useTransactionStream` |
+| Package | npm | Purpose |
+|---------|-----|---------|
+| `@cantonkit/core` | [![npm](https://img.shields.io/npm/v/@cantonkit/core)](https://www.npmjs.com/package/@cantonkit/core) | Framework-agnostic client |
+| `@cantonkit/react` | [![npm](https://img.shields.io/npm/v/@cantonkit/react)](https://www.npmjs.com/package/@cantonkit/react) | React provider + hooks |
+
+---
 
 ## Install
 
@@ -17,6 +63,8 @@ CantonKit wraps [`@canton-network/dapp-sdk`](https://www.npmjs.com/package/@cant
 pnpm add @cantonkit/react @cantonkit/core @canton-network/dapp-sdk \
          @tanstack/react-query react
 ```
+
+---
 
 ## Quick Start
 
@@ -69,21 +117,11 @@ export function Root() {
 }
 ```
 
-See [`examples/counter-app`](./examples/counter-app) for a full working demo.
+For a full working app against a local sandbox, see [`examples/counter-app-localnet`](./examples/counter-app-localnet).
 
-## Development
-
-```bash
-pnpm install
-pnpm test        # run all tests across packages
-pnpm build       # build all packages
-pnpm lint
-pnpm typecheck
-```
+---
 
 ## Testing your own app
-
-CantonKit ships fixtures at `@cantonkit/react/testing`:
 
 ```tsx
 import { createFakeCantonClient, TestCantonProvider } from '@cantonkit/react/testing'
@@ -99,13 +137,33 @@ render(
 )
 ```
 
-## Status
+---
 
-v0.1 — the hook layer and core client. Planned:
-- v0.2: DAR → TypeScript codegen CLI
-- v0.3: SSR/Next.js story, live-ledger contract tests
-- v0.4: Vue and Svelte adapters
+## Roadmap
+
+| Version | Status | What's in it |
+|---------|--------|-------------|
+| v0.1 | **Released** | Core client, React hooks, testing utilities, localnet examples |
+| v0.2 | Planned | `cantonkit codegen` — DAR → TypeScript interface + `templateId` constant generator |
+| v0.3 | Planned | SSR / Next.js App Router support; live-ledger contract test harness |
+| v0.4 | Planned | Vue 3 composables; Svelte stores |
+
+---
+
+## Contributing
+
+```bash
+pnpm install
+pnpm build       # build all packages
+pnpm test        # run all tests
+pnpm typecheck
+pnpm lint
+```
+
+Issues and PRs welcome.
+
+---
 
 ## License
 
-Apache-2.0. See [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE).
